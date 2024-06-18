@@ -1,32 +1,45 @@
-import 'dotenv/config';
-import { Resend } from 'resend';
-const emailRegistro = async (datos) => {
-  try {
-    const resend = new Resend(process.env.RESEND_KEY);
-    
-    const { email, nombre, token } = datos;
-    console.log(email)
+import { createTransport } from '../config/nodemailer.js';
 
-    const { data, error } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>',
-      to: [`${email}`],
-      subject: 'Confirma tu cuenta en APV',
-      html: `<p> Hola ${nombre}, por favor confirma tu cuenta en APV. </p> 
-        <p>Para confirmar, solo debes dar click en el siguiente enlace:
-          <a href="${process.env.FRONTEND_URL}/confirmarcuenta/${token}">Comprobar cuenta</a>
-        </p>
-        <p>¿No creaste esta cuenta? Puedes ignorar este mensaje.</p>
-      `
-    });
-    
-    if (error) {
-      return console.error({ error });
-    }
-    
+export async function sendEmailVerification({ email,nombre, token }) {
+  
+  const transporter = createTransport(
+    process.env.HOST_EMAIL,
+    process.env.PORT_EMAIL,
+    process.env.USER_EMAIL,
+    process.env.PASS_EMAIL,
+  )
+  
+  //send email
+  const info = await transporter.sendMail({
+    from: "portafolio@ordonezandres.com", // sender address
+    to: `${email}`, // list of receivers
+    subject: "AP-Veterinaria - Activar cuenta", // Subject line
+    text: `AP-Veterinaria - Activar cuenta`, // plain text body
+    html: `<p>😊 Hola ${nombre}, tu cuenta esta casi lista 👌, debes confirmar que ere tú 😉!</p> 
+    <a href="${process.env.FRONTEND_URL}/confirmarcuenta/${token}">Confirmar cuenta</a>
+    <p>No creaste esta cuenta? 🤔, ignora este mensaje</p>`, // html body
+  });
 
-  } catch (error) {
-    console.log(error);
-  }
+  console.log("the Message was sent successfully");
 }
+export async function sendEmailForgotPassword({ nombre, email, token }) {
+  const transporter = createTransport(
+    process.env.HOST_EMAIL,
+    process.env.PORT_EMAIL,
+    process.env.USER_EMAIL,
+    process.env.PASS_EMAIL,
+  )
+  
+  //send email
+  const info = await transporter.sendMail({
+    from: "portafolio@ordonezandres.com", // sender address
+    to: `${email}`, // list of receivers
+    subject: "AP-Veterinaria - Recuperar cuenta", // Subject line
+    text: `AP-Veterinaria - Recuperar cuenta`, // plain text body
+    html: `<p> Hola ${nombre} 😊, has realizado la solicitud de recuperación de contraseña 🟢</p> 
+    <a href="${process.env.FRONTEND_URL}/olvide-password/${token}">Establecer nueva Contraseña</a>
+    <p>No has sido tú? 🤔, ignora este mensaje</p>`, // html body
+  });
 
-export default emailRegistro;
+  console.log("Message sent:", info.messageId);
+}

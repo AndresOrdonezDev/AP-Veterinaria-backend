@@ -1,8 +1,8 @@
 import VeterinarioModel from '../models/VeterinarioModel.js'
 import generarJWT from '../helpers/generarJWT.js'
 import generarId from '../helpers/generarId.js';
-import emailRegistro from '../helpers/emailRegistro.js'
-import emailRecuperar from '../helpers/emialRecuperarPassword.js';
+import { sendEmailVerification, sendEmailForgotPassword } from '../helpers/emailRegistro.js'
+
 
 const registrar = async (req, res) => {
 
@@ -22,11 +22,13 @@ const registrar = async (req, res) => {
         const vetrinarioGuardar = await veterinario.save()
 
         //enviar un email de confirmación
-        emailRegistro({
-            email,
-            nombre,
-            token : vetrinarioGuardar.token,
-        })
+        sendEmailVerification(
+            {
+                email,
+                nombre,
+                token:vetrinarioGuardar.token,
+            }
+        )
         res.json(vetrinarioGuardar)
 
     } catch (error) {
@@ -36,12 +38,13 @@ const registrar = async (req, res) => {
 
 const perfil = (req, res) => {
     const { veterinario } = req;
-    res.json( veterinario)
+    res.json(veterinario)
 }
 
 const confirmar = async (req, res) => {
     //validar token
     const { token } = req.params
+    console.log('desde confirmar', token)
     const usuarioConfirmar = await VeterinarioModel.findOne({ token })
     if (!usuarioConfirmar) {
         const error = new Error("Token no válido")
@@ -77,7 +80,7 @@ const autenticar = async (req, res) => {
 
     //validar autenticacion del password
     if (await usuario.comprobarPassword(password)) {
-      
+
         res.json({
             _id: usuario._id,
             nombre: usuario.nombre,
@@ -103,9 +106,10 @@ const recuperarPassword = async (req, res) => {
         await existeVeterinario.save()
 
         //enviar instrucciones al correo para cambiar contraseña
-        emailRecuperar({
-            email, 
+        sendEmailForgotPassword({
+
             nombre: existeVeterinario.nombre,
+            email,
             token: existeVeterinario.token
         })
         res.json({ msg: 'se ha enviado a su correo las instrucciones' })
@@ -152,29 +156,29 @@ const nuevoPassword = async (req, res) => {
 
 }
 
-const actualizarPerfil = async (req, res) =>{
-    
+const actualizarPerfil = async (req, res) => {
+
     const veterinario = await VeterinarioModel.findById(req.params.id)
 
-    if(!veterinario){
+    if (!veterinario) {
         const error = new Error('Hubo un error al editar')
-        return res.status(400).json({msg: error.message})
+        return res.status(400).json({ msg: error.message })
     }
 
-    const { email} = req.body
-    if(veterinario.email !== req.body.email){
-        const existeEmail = await VeterinarioModel.findOne({email})
-        if(existeEmail){
+    const { email } = req.body
+    if (veterinario.email !== req.body.email) {
+        const existeEmail = await VeterinarioModel.findOne({ email })
+        if (existeEmail) {
             const error = new Error("Este email ya existe en APV")
-            return res.status(400).json({msg: error.message})
+            return res.status(400).json({ msg: error.message })
         }
     }
 
     try {
         veterinario.nombre = req.body.nombre || veterinario.nombre
         veterinario.email = req.body.email || veterinario.email
-        veterinario.telefono = req.body.telefono 
-        veterinario.web = req.body.web 
+        veterinario.telefono = req.body.telefono
+        veterinario.web = req.body.web
 
         const veterinarioActualizado = await veterinario.save()
         res.json(veterinarioActualizado)
@@ -184,34 +188,33 @@ const actualizarPerfil = async (req, res) =>{
     }
 }
 
-const actualizarPassword = async (req, res)=>{
+const actualizarPassword = async (req, res) => {
 
     //leer los datos
-    const {_id} = req.veterinario
-    const {actual, nueva} = req.body
+    const { _id } = req.veterinario
+    const { actual, nueva } = req.body
 
     //comprobar que el veterinario exista
     const veterinario = await VeterinarioModel.findById(_id)
 
-    if(!veterinario){
+    if (!veterinario) {
         const error = new Error("Falló la comprobación del usuario")
-        return res.status(400).json({msg: error.message})
+        return res.status(400).json({ msg: error.message })
     }
 
     //comprobar el password
-    if(await veterinario.comprobarPassword(actual)){
+    if (await veterinario.comprobarPassword(actual)) {
         //cambiar el nuevo password
         veterinario.password = nueva
-        
+
         await veterinario.save()
 
-        res.json({msg: 'Contraseña actualizada correctamente'})
-    }else{
-       
+        res.json({ msg: 'Contraseña actualizada correctamente' })
+    } else {
+
         const error = new Error("La contraseña actual es incorrecta")
-        return res.status(400).json({msg: error.message})
+        return res.status(400).json({ msg: error.message })
     }
-   
 }
 
 export {

@@ -11,7 +11,7 @@ app.use(express.json())
 
 conectarDB()
 
-const dominiosPermitidos = [process.env.FRONTEND_URL]
+const dominiosPermitidos = [process.env.FRONTEND_URL, undefined]
 
 const corsOptions = {
     origin: function (origin, callback){
